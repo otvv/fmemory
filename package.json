@@ -5,8 +5,8 @@
   "main": "lib/fmemory.js",
   "keywords": [
     "fmemory",
-    "memoryjs",
     "memory",
+    "gnu",
     "linux",
     "read",
     "write"
