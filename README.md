@@ -66,7 +66,7 @@ _NOTE_: This works with Wine/Proton as well.
 
 <h4>documentation:</h4>
 
-When using the `writeMem` or `readMem` you will need to tell wich data type parameter can either be a `string`:
+When using the `writeMem` or `readMem` you will need to tell the data type parameter, it can either be a `string`:
 
 ```
 'int', 'uint', 'long',
