@@ -57,7 +57,7 @@ const deltaTickOffset = 0x123
   if (pClientState) {
     
     // force update
-    fmemory.writeMem(pClientState + deltaTickOffset, -1 /* <- value */, fmemory.BYTR)
+    fmemory.writeMem(pClientState + deltaTickOffset, -1 /* <- value */, fmemory.BYTE)
   } 
   
 })()
