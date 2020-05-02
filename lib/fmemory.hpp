@@ -87,7 +87,7 @@ using MANAGER = struct SMemoryManager_t
 
   // @brief: get the absolute address of a callable pattern (function/pointer)
   // @args: std::uintptr_t _address, int _offset, int _size
-  std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, int _offset, int _size)
+  std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, int _offset, int _size);
 };
 
 } // namespace FMEMORY
