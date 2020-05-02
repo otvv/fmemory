@@ -18,7 +18,6 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 
 - vector3d and vector2d support _(read, write)_
 - ability to call virtual functions
-- be able to get the absolute address
 - shellcode execution _(maybe)_
 
 :construction: *more to come..*
