@@ -12,6 +12,7 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 - get process id through process name
 - get module base address through module name
 - get call address
+- get the absolute location of an address (get absolute address)
 
 **todo:**
 
