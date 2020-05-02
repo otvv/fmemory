@@ -81,9 +81,13 @@ using MANAGER = struct SMemoryManager_t
   // @args: std::uintptr_t _address, std::size_t _buffer, std::size_t _size
   bool WriteProcessMemory(void* _address, void* _buffer, std::size_t _size);
 
-  // @brief: get the address of a callable pattern (function)
+  // @brief: get the address of a callable pattern (function/pointer)
   // @args: std::uintptr_t _address
   std::uintptr_t GetCallAddress(std::uintptr_t _address);
+
+  // @brief: get the absolute address of a callable pattern (function/pointer)
+  // @args: std::uintptr_t _address, int _offset, int _size
+  std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, int _offset, int _size)
 };
 
 } // namespace FMEMORY

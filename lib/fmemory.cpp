@@ -171,6 +171,19 @@ std::uintptr_t MANAGER::GetCallAddress(std::uintptr_t _address)
   return 0;
 }
 
+//-------------------------------------------------------------------//
+std::uintptr_t MANAGER::GetAbsoluteAddress(std::uintptr_t _address, int _offset, int _size)
+{
+  std::size_t ulCode = 0;
+
+  if (MANAGER::ReadProcessMemory(reinterpret_cast<char *>(_address + _offset), &ulCode, sizeof(std::size_t)))
+  { 
+		return ulCode + (_address + _size);
+	}
+
+  return 0;
+}
+
 } // namespace FMEMORY
 
 namespace JS
@@ -452,6 +465,41 @@ Napi::Number getCallAddress(const Napi::CallbackInfo &_info)
   return returnValue;
 }
 
+Napi::Number getAbsoluteAddress(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsNumber())
+  {
+    Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[1].IsNumber())
+  {
+    Napi::TypeError::New(env, "Offset expected - (Number)").ThrowAsJavaScriptException();
+  }
+
+  else if (_info.Length() < 1 || !_info[2].IsNumber())
+  {
+    Napi::TypeError::New(env, "Size expected - (Number)").ThrowAsJavaScriptException();
+  }
+
+  // address to call
+  Napi::Number addressToCall = _info[0].As<Napi::Number>();
+
+  // address offset
+  Napi::Number addressOffset = _info[1].As<Napi::Number>();
+
+    // address size
+  Napi::Number addressSize = _info[2].As<Napi::Number>();
+
+  // get call address
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetAbsoluteAddress(addressToCall.Int64Value(), addressOffset.Int32Value(), addressSize.Int32Value()));
+
+  return returnValue;
+}
+
 Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
 {
   _exports.Set("getProcessID", Napi::Function::New(_env, getProcessID));
@@ -460,6 +508,7 @@ Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
   _exports.Set("writeMem", Napi::Function::New(_env, writeMem));
   _exports.Set("findSignature", Napi::Function::New(_env, findSignature));
   _exports.Set("getCallAddress", Napi::Function::New(_env, getCallAddress));
+  _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
 
   return _exports;
 }
