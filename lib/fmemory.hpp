@@ -11,7 +11,6 @@
 #define MAX_BUFFER_SIZE 4096
 
 #include <algorithm>
-#include <iostream>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -87,18 +86,8 @@ using MANAGER = struct SMemoryManager_t
   std::uintptr_t GetCallAddress(std::uintptr_t _address);
 
   // @brief: get the absolute address of a callable pattern (function/pointer)
-  // @args: std::uintptr_t _address, std::size_t _offset, std::int32_t _size
-  std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, std::size_t _offset, std::int32_t _size);
-
-  // @brief: map the memory region of a specific process
-  // @args: std::int32_t _process_id
-  void MapProcessMemoryRegions(std::int32_t _process_id);
-
-  // @brief: get info about the memory region of a process
-  const std::vector<MEMORY_MAP> &GetMemoryInfo();
-
-private:
-  std::vector<MEMORY_MAP> m_prgpMemoryMap;
+  // @args: std::uintptr_t _address, int _offset, int _size
+  std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, int _offset, int _size);
 };
 
 } // namespace FMEMORY
