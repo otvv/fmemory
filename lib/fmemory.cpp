@@ -16,7 +16,7 @@ void *MEMORY_MAP::FindSignature(SMemoryManager_t _handle, const char *_data, con
 {
   char cBuffer[MAX_BUFFER_SIZE];
 
-  std::size_t ulLength = std::strlen(_pattern);
+  std::size_t ulLength = std::strlen((_pattern - 1));
   std::size_t ulChunkSize = sizeof(cBuffer);
   std::size_t ulTotalSize = (m_ulEnd - m_ulStart);
   std::size_t ulChunkIndex = 0;
