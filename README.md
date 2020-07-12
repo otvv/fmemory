@@ -6,19 +6,19 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 <details>
 <summary>features:</summary>
 
- -  memory reading
- -  memory writing
- -  pattern scanning (still wip)
- -  get process id through process name
- -  get module base address through module name
- -  get call address
- -  get the absolute location of an address (get absolute address)
+-   memory reading
+-   memory writing
+-   pattern scanning (still wip)
+-   get process id through process name
+-   get module base address through module name
+-   get call address
+-   get the absolute location of an address (get absolute address)
 
 **todo:**
 
- -  vector3d and vector2d support _(read, write)_
- -  ability to call virtual functions
- -  shellcode execution _(maybe)_
+-   vector3d and vector2d support _(read, write)_
+-   ability to call virtual functions
+-   shellcode execution _(maybe)_
 
 :construction: _more to come.._
 
