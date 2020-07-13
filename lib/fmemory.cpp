@@ -8,6 +8,8 @@
 
 using namespace FMEMORY::UTILITIES;
 
+FMEMORY::MANAGER mngrMemory;
+
 namespace FMEMORY
 {
   //-------------------------------------------------------------------//
@@ -273,364 +275,355 @@ namespace FMEMORY
   {
     return m_prgpMemoryMap;
   }
-  //-------------------------------------------------------------------//
-
 } // namespace FMEMORY
 
-namespace JS
+Napi::Number getProcessID(const Napi::CallbackInfo &_info)
 {
-  // declarations
-  FMEMORY::MANAGER mngrMemory;
+  // environment
+  Napi::Env env = _info.Env();
 
-  Napi::Number getProcessID(const Napi::CallbackInfo &_info)
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsString())
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsString())
-    {
-      Napi::TypeError::New(env, "Process name expected - (String)").ThrowAsJavaScriptException();
-    }
-
-    // process name
-    Napi::String processName = _info[0].As<Napi::String>();
-
-    // get pid of given process
-    Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetProcessID(processName.Utf8Value()));
-
-    return returnValue;
+    Napi::TypeError::New(env, "Process name expected - (String)").ThrowAsJavaScriptException();
   }
-  //-------------------------------------------------------------------//
-  Napi::Number getModuleBaseAddress(const Napi::CallbackInfo &_info)
+
+  // process name
+  Napi::String processName = _info[0].As<Napi::String>();
+
+  // get pid of given process
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetProcessID(processName.Utf8Value()));
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Number getModuleBaseAddress(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsString())
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsString())
-    {
-      Napi::TypeError::New(env, "Module name expected - (String)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[1].IsNumber())
-    {
-      Napi::TypeError::New(env, "Process id expected - (Number)").ThrowAsJavaScriptException();
-    }
-
-    // module name
-    Napi::String moduleName = _info[0].As<Napi::String>();
-
-    // process id
-    Napi::Number pID = _info[1].As<Napi::Number>();
-
-    // get module address
-    Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetModule(moduleName.Utf8Value(), pID.Int32Value()));
-
-    return returnValue;
+    Napi::TypeError::New(env, "Module name expected - (String)").ThrowAsJavaScriptException();
   }
-  //-------------------------------------------------------------------//
-  Napi::Number readMem(const Napi::CallbackInfo &_info)
+  else if (_info.Length() < 1 || !_info[1].IsNumber())
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsNumber())
-    {
-      Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[1].IsString())
-    {
-      Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
-    }
-
-    // get base address
-    Napi::Number baseAddress = _info[0].As<Napi::Number>();
-
-    // get data type
-    Napi::String dataType = _info[1].As<Napi::String>();
-
-    // dummy
-    Napi::Number returnValue = {};
-
-    if (dataType.Utf8Value().compare("int") == 0)
-    {
-      int dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("uint") == 0)
-    {
-      unsigned int dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("long") == 0)
-    {
-      long dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("ulong") == 0)
-    {
-      unsigned long dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("short") == 0)
-    {
-      short dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("float") == 0)
-    {
-      float dummy = 0.0f;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("double") == 0)
-    {
-      double dummy = 0.0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("byte") == 0)
-    {
-      std::uint8_t dummy = 0;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    else if (dataType.Utf8Value().compare("bool") == 0)
-    {
-      bool dummy = false;
-      mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-      return Napi::Number::New(env, dummy);
-    }
-
-    return returnValue;
+    Napi::TypeError::New(env, "Process id expected - (Number)").ThrowAsJavaScriptException();
   }
-  //-------------------------------------------------------------------//
-  Napi::Function writeMem(const Napi::CallbackInfo &_info)
+
+  // module name
+  Napi::String moduleName = _info[0].As<Napi::String>();
+
+  // process id
+  Napi::Number pID = _info[1].As<Napi::Number>();
+
+  // get module address
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetModule(moduleName.Utf8Value(), pID.Int32Value()));
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Number readMem(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsNumber())
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsNumber())
-    {
-      Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[1].IsNumber())
-    {
-      Napi::TypeError::New(env, "Value expected - (Number)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[2].IsString())
-    {
-      Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
-    }
-
-    // get base address
-    Napi::Number baseAddress = _info[0].As<Napi::Number>();
-
-    // get value
-    Napi::Number valueToWrite = _info[1].As<Napi::Number>();
-
-    // get data type
-    Napi::String dataType = _info[2].As<Napi::String>();
-
-    // dummy return value
-    Napi::Function returnValue = {};
-
-    if (dataType.Utf8Value().compare("int") == 0)
-    {
-      int dummy = valueToWrite.Int32Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("uint") == 0)
-    {
-      unsigned int dummy = valueToWrite.Uint32Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("long") == 0)
-    {
-      long dummy = valueToWrite.Int64Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("ulong") == 0)
-    {
-      unsigned long dummy = valueToWrite.Int64Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("short") == 0)
-    {
-      short dummy = valueToWrite.Int32Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("float") == 0)
-    {
-      float dummy = valueToWrite.FloatValue();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("double") == 0)
-    {
-      double dummy = valueToWrite.DoubleValue();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("byte") == 0)
-    {
-      unsigned char dummy = valueToWrite.Uint32Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    else if (dataType.Utf8Value().compare("bool") == 0)
-    {
-      bool dummy = valueToWrite.Int32Value();
-      mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    }
-
-    return returnValue;
+    Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
   }
-  //-------------------------------------------------------------------//
-  Napi::Number findSignature(const Napi::CallbackInfo &_info)
+  else if (_info.Length() < 1 || !_info[1].IsString())
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsString())
-    {
-      Napi::TypeError::New(env, "Module name expected - (String)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[1].IsNumber())
-    {
-      Napi::TypeError::New(env, "Process id expected - (Number)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[2].IsString())
-    {
-      Napi::TypeError::New(env, "Signature expected - (String)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[3].IsString())
-    {
-      Napi::TypeError::New(env, "Signature mask (pattern) expected - (String)").ThrowAsJavaScriptException();
-    }
-
-    // dummy module
-    FMEMORY::MEMORY_MAP mapDummyModule;
-
-    // module name
-    Napi::String moduleName = _info[0].As<Napi::String>();
-
-    // process id
-    Napi::Number processID = _info[1].As<Napi::Number>();
-
-    // signature
-    Napi::String signaturePattern = _info[2].As<Napi::String>();
-
-    // mask
-    Napi::String signatureMask = _info[3].As<Napi::String>();
-
-    // map process memory
-    mngrMemory.MapProcessMemoryRegions(processID.Int32Value());
-
-    for (const FMEMORY::MEMORY_MAP &region : mngrMemory.GetMemoryInfo())
-    {
-      if ((region.m_strFileName.compare(moduleName.Utf8Value()) == 0) && region.m_bExecutable)
-      {
-        mapDummyModule = region;
-        break;
-      }
-    }
-
-    // get signature address
-    Napi::Number returnValue = Napi::Number::New(env, reinterpret_cast<std::uintptr_t>(mapDummyModule.FindSignature(mngrMemory, signaturePattern.Utf8Value().c_str(), signatureMask.Utf8Value().c_str())));
-
-    return returnValue;
+    Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
   }
-  //-------------------------------------------------------------------//
-  Napi::Number getCallAddress(const Napi::CallbackInfo &_info)
+
+  // get base address
+  Napi::Number baseAddress = _info[0].As<Napi::Number>();
+
+  // get data type
+  Napi::String dataType = _info[1].As<Napi::String>();
+
+  // dummy
+  Napi::Number returnValue = {};
+
+  if (dataType.Utf8Value().compare("int") == 0)
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsNumber())
-    {
-      Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
-    }
-
-    // address to call
-    Napi::Number addressToCall = _info[0].As<Napi::Number>();
-
-    // get call address
-    Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetCallAddress(addressToCall.Int64Value()));
-
-    return returnValue;
+    int dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
   }
-  //-------------------------------------------------------------------//
-  Napi::Number getAbsoluteAddress(const Napi::CallbackInfo &_info)
+
+  else if (dataType.Utf8Value().compare("uint") == 0)
   {
-    // environment
-    Napi::Env env = _info.Env();
-
-    // check if the argument is valid
-    if (_info.Length() < 1 || !_info[0].IsNumber())
-    {
-      Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
-    }
-    else if (_info.Length() < 1 || !_info[1].IsNumber())
-    {
-      Napi::TypeError::New(env, "Offset expected - (Number)").ThrowAsJavaScriptException();
-    }
-
-    else if (_info.Length() < 1 || !_info[2].IsNumber())
-    {
-      Napi::TypeError::New(env, "Size expected - (Number)").ThrowAsJavaScriptException();
-    }
-
-    // address to call
-    Napi::Number addressToCall = _info[0].As<Napi::Number>();
-
-    // address offset
-    Napi::Number addressOffset = _info[1].As<Napi::Number>();
-
-    // address size
-    Napi::Number addressSize = _info[2].As<Napi::Number>();
-
-    // get call address
-    Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetAbsoluteAddress(addressToCall.Int64Value(), addressOffset.Int32Value(), addressSize.Int32Value()));
-
-    return returnValue;
+    unsigned int dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
   }
-  //-------------------------------------------------------------------//
-  Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
+
+  else if (dataType.Utf8Value().compare("long") == 0)
   {
-    _exports.Set("getProcessID", Napi::Function::New(_env, getProcessID));
-    _exports.Set("getModuleBaseAddress", Napi::Function::New(_env, getModuleBaseAddress));
-    _exports.Set("readMem", Napi::Function::New(_env, readMem));
-    _exports.Set("writeMem", Napi::Function::New(_env, writeMem));
-    _exports.Set("findSignature", Napi::Function::New(_env, findSignature));
-    _exports.Set("getCallAddress", Napi::Function::New(_env, getCallAddress));
-    _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
-
-    return _exports;
+    long dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
   }
-  //-------------------------------------------------------------------//
-  NODE_API_MODULE(fmemoryJS, Initialize);
-  //-------------------------------------------------------------------//
-} // namespace JS
+
+  else if (dataType.Utf8Value().compare("ulong") == 0)
+  {
+    unsigned long dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("short") == 0)
+  {
+    short dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("float") == 0)
+  {
+    float dummy = 0.0f;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("double") == 0)
+  {
+    double dummy = 0.0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("byte") == 0)
+  {
+    std::uint8_t dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("bool") == 0)
+  {
+    bool dummy = false;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Function writeMem(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsNumber())
+  {
+    Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[1].IsNumber())
+  {
+    Napi::TypeError::New(env, "Value expected - (Number)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[2].IsString())
+  {
+    Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
+  }
+
+  // get base address
+  Napi::Number baseAddress = _info[0].As<Napi::Number>();
+
+  // get value
+  Napi::Number valueToWrite = _info[1].As<Napi::Number>();
+
+  // get data type
+  Napi::String dataType = _info[2].As<Napi::String>();
+
+  // dummy return value
+  Napi::Function returnValue = {};
+
+  if (dataType.Utf8Value().compare("int") == 0)
+  {
+    int dummy = valueToWrite.Int32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("uint") == 0)
+  {
+    unsigned int dummy = valueToWrite.Uint32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("long") == 0)
+  {
+    long dummy = valueToWrite.Int64Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("ulong") == 0)
+  {
+    unsigned long dummy = valueToWrite.Int64Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("short") == 0)
+  {
+    short dummy = valueToWrite.Int32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("float") == 0)
+  {
+    float dummy = valueToWrite.FloatValue();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("double") == 0)
+  {
+    double dummy = valueToWrite.DoubleValue();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("byte") == 0)
+  {
+    unsigned char dummy = valueToWrite.Uint32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("bool") == 0)
+  {
+    bool dummy = valueToWrite.Int32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Number findSignature(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsString())
+  {
+    Napi::TypeError::New(env, "Module name expected - (String)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[1].IsNumber())
+  {
+    Napi::TypeError::New(env, "Process id expected - (Number)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[2].IsString())
+  {
+    Napi::TypeError::New(env, "Signature expected - (String)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[3].IsString())
+  {
+    Napi::TypeError::New(env, "Signature mask (pattern) expected - (String)").ThrowAsJavaScriptException();
+  }
+
+  // dummy module
+  FMEMORY::MEMORY_MAP mapDummyModule;
+
+  // module name
+  Napi::String moduleName = _info[0].As<Napi::String>();
+
+  // process id
+  Napi::Number processID = _info[1].As<Napi::Number>();
+
+  // signature
+  Napi::String signaturePattern = _info[2].As<Napi::String>();
+
+  // mask
+  Napi::String signatureMask = _info[3].As<Napi::String>();
+
+  // map process memory
+  mngrMemory.MapProcessMemoryRegions(processID.Int32Value());
+
+  for (const FMEMORY::MEMORY_MAP &region : mngrMemory.GetMemoryInfo())
+  {
+    if ((region.m_strFileName.compare(moduleName.Utf8Value()) == 0) && region.m_bExecutable)
+    {
+      mapDummyModule = region;
+      break;
+    }
+  }
+
+  // get signature address
+  Napi::Number returnValue = Napi::Number::New(env, reinterpret_cast<std::uintptr_t>(mapDummyModule.FindSignature(mngrMemory, signaturePattern.Utf8Value(), signatureMask.Utf8Value())));
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Number getCallAddress(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsNumber())
+  {
+    Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
+  }
+
+  // address to call
+  Napi::Number addressToCall = _info[0].As<Napi::Number>();
+
+  // get call address
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetCallAddress(addressToCall.Int64Value()));
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Number getAbsoluteAddress(const Napi::CallbackInfo &_info)
+{
+  // environment
+  Napi::Env env = _info.Env();
+
+  // check if the argument is valid
+  if (_info.Length() < 1 || !_info[0].IsNumber())
+  {
+    Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
+  }
+  else if (_info.Length() < 1 || !_info[1].IsNumber())
+  {
+    Napi::TypeError::New(env, "Offset expected - (Number)").ThrowAsJavaScriptException();
+  }
+
+  else if (_info.Length() < 1 || !_info[2].IsNumber())
+  {
+    Napi::TypeError::New(env, "Size expected - (Number)").ThrowAsJavaScriptException();
+  }
+
+  // address to call
+  Napi::Number addressToCall = _info[0].As<Napi::Number>();
+
+  // address offset
+  Napi::Number addressOffset = _info[1].As<Napi::Number>();
+
+  // address size
+  Napi::Number addressSize = _info[2].As<Napi::Number>();
+
+  // get call address
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetAbsoluteAddress(addressToCall.Int64Value(), addressOffset.Int32Value(), addressSize.Int32Value()));
+
+  return returnValue;
+}
+//-------------------------------------------------------------------//
+Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
+{
+  _exports.Set("getProcessID", Napi::Function::New(_env, getProcessID));
+  _exports.Set("getModuleBaseAddress", Napi::Function::New(_env, getModuleBaseAddress));
+  _exports.Set("readMem", Napi::Function::New(_env, readMem));
+  _exports.Set("writeMem", Napi::Function::New(_env, writeMem));
+  _exports.Set("findSignature", Napi::Function::New(_env, findSignature));
+  _exports.Set("getCallAddress", Napi::Function::New(_env, getCallAddress));
+  _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
+
+  return _exports;
+}
+
+NODE_API_MODULE(fmemoryJS, Initialize);
