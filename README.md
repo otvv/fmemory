@@ -8,7 +8,6 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 
 -   memory reading
 -   memory writing
--   pattern scanning (still wip)
 -   get process id through process name
 -   get module base address through module name
 -   get call address
@@ -71,13 +70,15 @@ When using the `writeMem` or `readMem` you will need to tell the data type param
 "int", "uint", "long",
 "ulong", "short", "float",
 "double", "byte", "bool"
+"string"
 ```
 Or you can use one of the constants provided by the library:
 
 ```javascript
 fmemory.INT, fmemory.UINT, fmemory.LONG,
 fmemory.ULONG, fmemory.SHORT, fmemory.FLOAT,
-fmemory.DOUBLE, fmemory.BYTE, fmemory.BOOL
+fmemory.DOUBLE, fmemory.BYTE, fmemory.BOOL,
+fmemory.STRING
 ```
 
 ***
