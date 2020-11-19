@@ -26,9 +26,6 @@
 
 namespace FMEMORY
 {
-  struct SMemoryManager_t;
-  struct SMapModuleMemoryRegion_t;
-
   // @NOTE: everything inside this namespace is not meant
   // to be used outside the library.
   namespace UTILITIES
@@ -43,28 +40,6 @@ namespace FMEMORY
 
   } // namespace UTILITIES
 
-  using MEMORY_MAP = struct SMapModuleMemoryRegion_t
-  {
-  public:
-    // @BRIEF: find signature on scanned module
-    void *FindSignature(SMemoryManager_t _handle, const std::string &_data, const std::string &_pattern);
-
-    std::uintptr_t m_ulStart;
-    std::uintptr_t m_ulEnd;
-
-    bool m_bReadable;
-    bool m_bWritable;
-    bool m_bExecutable;
-    bool m_bShared;
-
-    std::uintptr_t m_ulOffset;
-    std::uint8_t m_ucDeviceMajor;
-    std::uint8_t m_ucDeviceMinor;
-    std::uintptr_t m_ulNodeFileNumber;
-    std::string m_strPathName;
-    std::string m_strFileName;
-  };
-
   using MANAGER = struct SMemoryManager_t
   {
     // @BRIEF: get the process id by name
@@ -76,12 +51,16 @@ namespace FMEMORY
     std::uintptr_t GetModule(const std::string &_module_name, std::int32_t _process_id);
 
     // @BRIEF: read the value of specific memory location
-    // @ARGS: std::uintptr_t _address, std::size_t _buffer, std::size_t _size
+    // @ARGS: void* _address, std::size_t _buffer, std::size_t _size
     bool ReadProcessMemory(void *_address, void *_buffer, std::size_t _size);
 
     // @BREIF: write to a specific memory location
-    // @ARGS: std::uintptr_t _address, std::size_t _buffer, std::size_t _size
+    // @ARGS: void* _address, std::size_t _buffer, std::size_t _size
     bool WriteProcessMemory(void *_address, void *_buffer, std::size_t _size);
+
+    // @BRIEF: read the char of the value of a specific memory location
+    // @ARGS: void* _address
+    char ReadCharProcessMemory(void *_address);
 
     // @BRIEF: get the address of a callable pattern (function/pointer)
     // @ARGS: std::uintptr_t _address
@@ -90,16 +69,6 @@ namespace FMEMORY
     // @BRIEF: get the absolute address of a callable pattern (function/pointer)
     // @ARGS: std::uintptr_t _address, std::size_t _offset, std::int32_t _size
     std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, std::size_t _offset, std::int32_t _size);
-
-    // @BRIEF: map the memory region of a specific process
-    // @ARGS: std::int32_t _process_id
-    void MapProcessMemoryRegions(std::int32_t _process_id);
-
-    // @BRIEF: get info about the memory region of a process
-    const std::vector<MEMORY_MAP> &GetMemoryInfo();
-
-  private:
-    std::vector<MEMORY_MAP> m_prgpMemoryMap;
   };
 
 } // namespace FMEMORY
