@@ -1,4 +1,4 @@
-# fmemory [![Codacy Badge](https://api.codacy.com/project/badge/Grade/a8863849ae0f4286950af067723cd2ac)](https://app.codacy.com/manual/otvv/fmemory?utm_source=github.com&utm_medium=referral&utm_content=otvv/fmemory&utm_campaign=Badge_Grade_Dashboard)
+# fmemory [![Codacy Badge](https://app.codacy.com/project/badge/Grade/ce5ae034b28843f08eb76d7103787946)](https://www.codacy.com/gh/otvv/fmemory/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=otvv/fmemory&amp;utm_campaign=Badge_Grade)
 A simple node add-on for reading and writing memory on GNU/Linux.
 
 ***
