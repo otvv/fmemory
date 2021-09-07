@@ -50,12 +50,12 @@ const deltaTickOffset = 0x123
   const engineModuleBaseAddress = fmemory.getModuleBaseAddress("engine_client.so", processID)
   
   // get client state address
-  const pClientState = fmemory.readMem(engineModuleBaseAddress + clientStateAddress, fmemory.INT)
+  const pClientState = fmemory.readMemory(engineModuleBaseAddress + clientStateAddress, fmemory.INT)
 
   if (pClientState) {
     
     // force update
-    fmemory.writeMem(pClientState + deltaTickOffset, -1 /* <- value */, fmemory.BYTE)
+    fmemory.writeMemory(pClientState + deltaTickOffset, -1 /* <- value */, fmemory.BYTE)
   } 
   
 })()
