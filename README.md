@@ -25,7 +25,7 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 
 <h4>installing:</h4>
 
-Since this is a Node addon, you'll need `node-gyp`, `node-addon-api` and a C++ compiler (`GCC`).
+Since this is a Node addon, you'll need `node-gyp`, `node-addon-api`, `python` and a C++ compiler (`GCC`).
 
 To install this addon simply type: `npm install fmemory`
 
