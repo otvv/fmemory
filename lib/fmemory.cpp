@@ -202,7 +202,7 @@ Napi::Number getModuleBaseAddress(const Napi::CallbackInfo &_info)
   return returnValue;
 }
 //-------------------------------------------------------------------//
-Napi::Value readMem(const Napi::CallbackInfo &_info)
+Napi::Value readMemory(const Napi::CallbackInfo &_info)
 {
   // environment
   Napi::Env env = _info.Env();
@@ -335,7 +335,7 @@ Napi::Value readMem(const Napi::CallbackInfo &_info)
   return returnValue;
 }
 //-------------------------------------------------------------------//
-Napi::Function writeMem(const Napi::CallbackInfo &_info)
+Napi::Function writeMemory(const Napi::CallbackInfo &_info)
 {
   // environment
   Napi::Env env = _info.Env();
@@ -490,8 +490,8 @@ Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
 {
   _exports.Set("getProcessID", Napi::Function::New(_env, getProcessID));
   _exports.Set("getModuleBaseAddress", Napi::Function::New(_env, getModuleBaseAddress));
-  _exports.Set("readMem", Napi::Function::New(_env, readMem));
-  _exports.Set("writeMem", Napi::Function::New(_env, writeMem));
+  _exports.Set("readMemory", Napi::Function::New(_env, readMemory));
+  _exports.Set("writeMemory", Napi::Function::New(_env, writeMemory));
   _exports.Set("getCallAddress", Napi::Function::New(_env, getCallAddress));
   _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
 
