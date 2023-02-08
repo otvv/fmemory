@@ -36,7 +36,7 @@ The usage is pretty straight-forward.
 Here's how:
 
 ```javascript
-const fmemory = require("fmemory");
+import fmemory from "fmemory";
 
 const clientStateAddress = 0xDEADBEEF
 const deltaTickOffset = 0x123
