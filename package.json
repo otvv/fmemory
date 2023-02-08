@@ -1,6 +1,6 @@
 {
   "name": "fmemory",
-  "version": "0.0.6",
+  "version": "0.0.6-1",
   "type": "module",
   "description": "A simple node add-on for reading and writing memory on GNU/Linux.",
   "main": "lib/fmemory.js",
