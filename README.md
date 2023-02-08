@@ -41,7 +41,7 @@ import fmemory from "fmemory";
 const clientStateAddress = 0xDEADBEEF
 const deltaTickOffset = 0x123
 
-(function main() {
+const main = (() {
 
   // get process id
   const processID = fmemory.getProcessID("csgo_linux64")
