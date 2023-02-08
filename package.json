@@ -1,10 +1,10 @@
 {
   "name": "fmemory",
-  "version": "0.0.6-2",
+  "version": "0.0.6-3",
   "description": "A simple node add-on for reading and writing memory on GNU/Linux.",
-  "main": "lib/fmemory.js",
+  "main": "lib/fmemory.cjs",
   "scripts": {
-    "build": "cmake-js compile"
+    "install": "cmake-js compile"
   },
   "keywords": [
     "fmemory",
@@ -12,12 +12,13 @@
     "gnu",
     "linux",
     "read",
-    "write"
+    "write",
+    "cheat"
   ],
   "author": "otvv",
   "license": "MIT",
   "dependencies": {
-    "cmake-js": "^7.1.1",
-    "node-addon-api": "^2.0.2"
+    "node-addon-api": "^2.0.2",
+    "cmake-js": "^7.1.1"
   }
 }
