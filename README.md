@@ -25,7 +25,7 @@ A simple node add-on for reading and writing memory on GNU/Linux.
 
 <h4>installing:</h4>
 
-Since this is a Node addon, you'll need `cmake-js`, `node-addon-api`, and a C++ compiler + builder (`GCC` and 'make').
+Since this is a Node addon, you'll need `cmake-js`, `node-addon-api`, and a C++ compiler (`GCC`).
 
 To install this addon simply type: `npm install fmemory` (if you get an error related to cmake-js, make sure your node.js is updated and try installing `node-addon-api` and `cmake-js` globally first.)
 
