@@ -1,8 +1,8 @@
 {
   "name": "fmemory",
-  "version": "0.0.6-3",
+  "version": "0.0.6-4",
   "description": "A simple node add-on for reading and writing memory on GNU/Linux.",
-  "main": "lib/fmemory.cjs",
+  "main": "lib/fmemory.js",
   "scripts": {
     "install": "cmake-js compile"
   },
