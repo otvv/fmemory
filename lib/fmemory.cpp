@@ -130,7 +130,7 @@ namespace FMEMORY
     return (process_vm_writev(m_iProcessID, local_iovec, 1, remote_iovec, 1, 0) == static_cast<ssize_t>(_size));
   }
   //-------------------------------------------------------------------//
-  std::uintptr_t MANAGER::GetCallAddress(std::uintptr_t _address)
+  std::uintptr_t MANAGER::GetCallAddress(std::uintptr_t _address) // TODO: rename this to GetCallAddressOffset
   {
     std::size_t ulCode = 0;
 
