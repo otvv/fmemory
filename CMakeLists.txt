@@ -1,3 +1,13 @@
+#
+# WARNING:
+# ---------------------------------------------------------------------------------------------------------------------------------------------------
+# if you are going to build this from source, make sure that you install `cmake-js` and `node-addon-api` locally (normal `npm install` without the "global" flag)
+# and build it using the command: `npm run install`.
+# don't try to build it through CMake or Visual Studio Code.
+# --------------------------------------------------------------------------------------------------------------------------------------------------
+#
+
+
 cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0042 NEW)
 set (CMAKE_CXX_STANDARD 17)
@@ -9,7 +19,7 @@ add_library(${PROJECT_NAME} SHARED ${SOURCE_FILES} ${CMAKE_JS_SRC})
 set_target_properties(${PROJECT_NAME} PROPERTIES PREFIX "" SUFFIX ".node")
 target_link_libraries(${PROJECT_NAME} ${CMAKE_JS_LIB})
 
-# Include Node-API wrappers
+# include Node-API wrappers
 execute_process(COMMAND node -p "require('node-addon-api').include"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE NODE_ADDON_API_DIR

@@ -22,13 +22,8 @@ namespace FMEMORY
 
     for (const auto &process : std::filesystem::directory_iterator("/proc/"))
     {
-      // check if the proc folder is valid
-      if (!process.is_directory())
-      {
-        continue;
-      }
-
-      if (!IsOnlyDigits(process.path().string().erase(0, 6)))
+      // check if the proc folder and file is valid
+      if (!process.is_directory() || !IsOnlyDigits(process.path().string().erase(0, 6)))
       {
         continue;
       }
@@ -40,12 +35,12 @@ namespace FMEMORY
       {
         std::getline(ccProcessName, strLine);
 
-        // if the process is equal to the process name
+        // check if the process that we are looking for is the same one from the proc file line being currently read
         if (strLine == _process_name)
         {
+          // extract the process id from the process name string and convert it to a number
           m_iProcessID = std::stoi(process.path().string().erase(0, 6));
 
-          // return process id
           return m_iProcessID;
         }
       }
@@ -63,7 +58,7 @@ namespace FMEMORY
     // run command
     std::snprintf(cCommand, 256, "grep \"%s\" /proc/%i/maps | head -n 1 | cut -d \"-\" -f1", _module_name.c_str(), _process_id);
 
-    // create new stream with our custom command
+    // create new stream using the command that was just 'created'
     fileMaps = popen(cCommand, "r");
 
     if (fileMaps)
@@ -71,16 +66,17 @@ namespace FMEMORY
       // scan for modules
       if (fscanf(fileMaps, "%" SCNx64, &ulResult))
       {
+        pclose(fileMaps);
+
         // return module address
         return ulResult;
       }
-      else
-      {
-        return 0;
-      }
+
+      pclose(fileMaps);
+
+      return 0;
     }
 
-    // close pipe
     pclose(fileMaps);
 
     return 0;
@@ -130,7 +126,7 @@ namespace FMEMORY
     return (process_vm_writev(m_iProcessID, local_iovec, 1, remote_iovec, 1, 0) == static_cast<ssize_t>(_size));
   }
   //-------------------------------------------------------------------//
-  std::uintptr_t MANAGER::GetCallAddress(std::uintptr_t _address) // TODO: rename this to GetCallAddressOffset
+  std::uintptr_t MANAGER::GetCallAddressOffset(std::uintptr_t _address)
   {
     std::size_t ulCode = 0;
 
@@ -261,6 +257,13 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
     return Napi::Number::New(env, dummy);
   }
 
+  else if (dataType.Utf8Value().compare("ushort") == 0)
+  {
+    unsigned short dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
   else if (dataType.Utf8Value().compare("float") == 0)
   {
     float dummy = 0.0f;
@@ -302,7 +305,7 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
       characters.push_back(buffer);
 
       // break at 1 million chars
-      if (offset == (sizeof(char) * 1000000))
+      if (offset == (sizeof(char) * MAX_CHAR_SIZE))
       {
         characters.clear();
         break;
@@ -318,17 +321,16 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
       offset += sizeof(char);
     }
 
-    // if the string is null or invalid
-    if (characters.size() == 0)
+    if (characters.size())
     {
-      Napi::TypeError::New(env, "Invalid string!").ThrowAsJavaScriptException(); // TODO: add more verbose error
-    }
-    else // if the string is valid
-    {
-      // assemble string with found chars
-      std::string found_string(characters.begin(), characters.end());
+      // assemble a new string with found characters
+      std::string assembled_string_with_found_chars(characters.begin(), characters.end());
 
-      return Napi::String::New(env, found_string.c_str());
+      return Napi::String::New(env, assembled_string_with_found_chars.c_str());
+    }
+    else // if the string is invalid
+    {
+      Napi::TypeError::New(env, "Invalid string!").ThrowAsJavaScriptException(); // TODO: add a more verbose error
     }
   }
 
@@ -396,6 +398,12 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
     mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
   }
 
+  else if (dataType.Utf8Value().compare("ushort") == 0)
+  {
+    unsigned short dummy = valueToWrite.Uint32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
   else if (dataType.Utf8Value().compare("float") == 0)
   {
     float dummy = valueToWrite.FloatValue();
@@ -431,7 +439,7 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
   return returnValue;
 }
 //-------------------------------------------------------------------//
-Napi::Number getCallAddress(const Napi::CallbackInfo &_info)
+Napi::Number getCallAddressOffset(const Napi::CallbackInfo &_info)
 {
   // environment
   Napi::Env env = _info.Env();
@@ -445,8 +453,8 @@ Napi::Number getCallAddress(const Napi::CallbackInfo &_info)
   // address to call
   Napi::Number addressToCall = _info[0].As<Napi::Number>();
 
-  // get call address
-  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetCallAddress(addressToCall.Int64Value()));
+  // get call address offset
+  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetCallAddressOffset(addressToCall.Int64Value()));
 
   return returnValue;
 }
@@ -492,7 +500,7 @@ Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
   _exports.Set("getModuleBaseAddress", Napi::Function::New(_env, getModuleBaseAddress));
   _exports.Set("readMemory", Napi::Function::New(_env, readMemory));
   _exports.Set("writeMemory", Napi::Function::New(_env, writeMemory));
-  _exports.Set("getCallAddress", Napi::Function::New(_env, getCallAddress));
+  _exports.Set("getCallAddressOffset", Napi::Function::New(_env, getCallAddressOffset));
   _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
 
   return _exports;

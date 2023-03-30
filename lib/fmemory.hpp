@@ -9,7 +9,9 @@
 
 #define MIN_BUFFER_SIZE 256
 #define MAX_BUFFER_SIZE 4096
+#define MAX_CHAR_SIZE 1000000
 
+// std
 #include <algorithm>
 #include <iostream>
 #include <filesystem>
@@ -19,9 +21,11 @@
 #include <utility>
 #include <vector>
 
+// linux
 #include <sys/uio.h>
 #include <inttypes.h>
 
+// node
 #include <napi.h>
 
 namespace FMEMORY
@@ -64,7 +68,7 @@ namespace FMEMORY
 
     // @BRIEF: get the address of a callable pattern (function/pointer)
     // @ARGS: std::uintptr_t _address
-    std::uintptr_t GetCallAddress(std::uintptr_t _address);
+    std::uintptr_t GetCallAddressOffset(std::uintptr_t _address);
 
     // @BRIEF: get the absolute address of a callable pattern (function/pointer)
     // @ARGS: std::uintptr_t _address, std::size_t _offset, std::int32_t _size
