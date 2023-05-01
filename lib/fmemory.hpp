@@ -66,11 +66,11 @@ namespace FMEMORY
     // @ARGS: void* _address
     char ReadCharProcessMemory(void *_address);
 
-    // @BRIEF: get the address of a callable pattern (function/pointer)
+    // @BRIEF: get the call address of a function
     // @ARGS: std::uintptr_t _address
     std::uintptr_t GetCallAddressOffset(std::uintptr_t _address);
 
-    // @BRIEF: get the absolute address of a callable pattern (function/pointer)
+    // @BRIEF: get the absolute address of a function
     // @ARGS: std::uintptr_t _address, std::size_t _offset, std::int32_t _size
     std::uintptr_t GetAbsoluteAddress(std::uintptr_t _address, std::size_t _offset, std::int32_t _size);
   };

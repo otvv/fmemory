@@ -222,16 +222,30 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
   // dummy
   Napi::Value returnValue = {};
 
-  if (dataType.Utf8Value().compare("int") == 0)
+  if (dataType.Utf8Value().compare("int32") == 0)
   {
-    int dummy = 0;
+    std::int32_t dummy = 0;
     mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
     return Napi::Number::New(env, dummy);
   }
 
-  else if (dataType.Utf8Value().compare("uint") == 0)
+  else if (dataType.Utf8Value().compare("int64") == 0)
   {
-    unsigned int dummy = 0;
+    std::int64_t dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("uint32") == 0)
+  {
+    std::uint32_t dummy = 0;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+    else if (dataType.Utf8Value().compare("uint64") == 0)
+  {
+    std::uint64_t dummy = 0;
     mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
     return Napi::Number::New(env, dummy);
   }
@@ -288,6 +302,13 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
   else if (dataType.Utf8Value().compare("bool") == 0)
   {
     bool dummy = false;
+    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    return Napi::Number::New(env, dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("pointer") == 0)
+  {
+    std::uintptr_t dummy = 0x0;
     mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
     return Napi::Number::New(env, dummy);
   }
@@ -368,15 +389,27 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
   // dummy return value
   Napi::Function returnValue = {};
 
-  if (dataType.Utf8Value().compare("int") == 0)
+  if (dataType.Utf8Value().compare("int32") == 0)
   {
-    int dummy = valueToWrite.Int32Value();
+    std::int32_t dummy = valueToWrite.Int32Value();
     mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
   }
 
-  else if (dataType.Utf8Value().compare("uint") == 0)
+  else if (dataType.Utf8Value().compare("int64") == 0)
   {
-    unsigned int dummy = valueToWrite.Uint32Value();
+    std::int64_t dummy = valueToWrite.Int64Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("uint32") == 0)
+  {
+    std::uint32_t dummy = valueToWrite.Uint32Value();
+    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+  }
+
+  else if (dataType.Utf8Value().compare("uint64") == 0)
+  {
+    std::uint64_t dummy = valueToWrite.Int64Value();
     mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
   }
 
