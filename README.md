@@ -65,25 +65,28 @@ const main = (() => {
 ```
 
 _NOTE_: This works with Wine/Proton as well.
+_(Still needs improvement on that area, but it works.)_
 
 <h4>documentation:</h4>
 
 When using the `writeMem` or `readMem` you will need to tell the data type parameter, it can either be a `string`:
 
 ```javascript
-"int", "uint", "long",
-"ulong", "short", "float",
-"double", "byte", "bool"
-"string"
+"int32", "uint32", "int64",
+"uint64", "long", "ulong", 
+"short", "float", "double", 
+"byte", "bool" "string",
+"pointer"
 ```
 
 Or you can use one of the constants provided by the library:
 
 ```javascript
-fmemory.INT, fmemory.UINT, fmemory.LONG,
-fmemory.ULONG, fmemory.SHORT, fmemory.FLOAT,
-fmemory.DOUBLE, fmemory.BYTE, fmemory.BOOL,
-fmemory.STRING
+fmemory.INT, fmemory.UINT, fmemory.INT64,
+fmemory.UINT64, fmemory.LONG, fmemory.ULONG, 
+fmemory.SHORT, fmemory.FLOAT, fmemory.DOUBLE,
+fmemory.BYTE, fmemory.BOOL, fmemory.STRING,
+fmemory.POINTER
 ```
 
 ---
