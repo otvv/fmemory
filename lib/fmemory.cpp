@@ -303,7 +303,7 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
   {
     bool dummy = false;
     mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    return Napi::Boolean::New(env, dummy);
   }
 
   else if (dataType.Utf8Value().compare("pointer") == 0)
@@ -383,6 +383,9 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
   // get value
   Napi::Number valueToWrite = _info[1].As<Napi::Number>();
 
+  // get boolean value
+  Napi::Boolean booleanToWrite = _info[1].As<Napi::Boolean>();
+
   // get data type
   Napi::String dataType = _info[2].As<Napi::String>();
 
@@ -457,7 +460,7 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
 
   else if (dataType.Utf8Value().compare("bool") == 0)
   {
-    bool dummy = valueToWrite.Int32Value();
+    bool dummy = booleanToWrite.Value();
     mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
   }
 
