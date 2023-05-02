@@ -1,12 +1,13 @@
 {
   "name": "fmemory",
-  "version": "0.0.8-1",
-  "description": "A simple node add-on for reading and writing memory on GNU/Linux.",
+  "version": "0.1.0",
+  "description": "A simple node add-on for reading and writing memory on Linux, powered by gmem.",
   "main": "lib/fmemory.js",
   "scripts": {
     "install": "cmake-js compile"
   },
   "keywords": [
+    "gmem",
     "fmemory",
     "memory",
     "gnu",

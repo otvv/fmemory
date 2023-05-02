@@ -1,316 +1,173 @@
-// fmemory - simple memory hacking library for linux
+// fmemory - simple node add-on for reading and writing memory on Linux.
+// powered by gmem
 //
 // by: otvv
 // license: MIT
 //
 
-#include "fmemory.hpp"
+#define MAX_CHAR_SIZE 1000000
 
-using namespace FMEMORY::UTILITIES;
+// gmem
+#include "dependencies/gmem/gmem.hpp"
 
-FMEMORY::MANAGER mngrMemory;
-
-namespace FMEMORY
-{
-  //-------------------------------------------------------------------//
-  std::int32_t MANAGER::GetProcessID(const std::string &_process_name)
-  {
-    if (_process_name.empty())
-    {
-      return 0;
-    }
-
-    for (const auto &process : std::filesystem::directory_iterator("/proc/"))
-    {
-      // check if the proc folder and file is valid
-      if (!process.is_directory() || !IsOnlyDigits(process.path().string().erase(0, 6)))
-      {
-        continue;
-      }
-
-      std::string strLine;
-      std::ifstream ccProcessName(process.path() / "comm");
-
-      if (ccProcessName.is_open())
-      {
-        std::getline(ccProcessName, strLine);
-
-        // check if the process that we are looking for is the same one from the proc file line being currently read
-        if (strLine == _process_name)
-        {
-          // extract the process id from the process name string and convert it to a number
-          m_iProcessID = std::stoi(process.path().string().erase(0, 6));
-
-          return m_iProcessID;
-        }
-      }
-    }
-
-    return 0;
-  }
-  //-------------------------------------------------------------------//
-  std::uintptr_t MANAGER::GetModule(const std::string &_module_name, std::int32_t _process_id)
-  {
-    FILE *fileMaps;
-    std::uintptr_t ulResult;
-    char cCommand[MIN_BUFFER_SIZE];
-
-    // run command
-    std::snprintf(cCommand, 256, "grep \"%s\" /proc/%i/maps | head -n 1 | cut -d \"-\" -f1", _module_name.c_str(), _process_id);
-
-    // create new stream using the command that was just 'created'
-    fileMaps = popen(cCommand, "r");
-
-    if (fileMaps)
-    {
-      // scan for modules
-      if (fscanf(fileMaps, "%" SCNx64, &ulResult))
-      {
-        pclose(fileMaps);
-
-        // return module address
-        return ulResult;
-      }
-
-      pclose(fileMaps);
-
-      return 0;
-    }
-
-    pclose(fileMaps);
-
-    return 0;
-  }
-  //-------------------------------------------------------------------//
-  bool MANAGER::ReadProcessMemory(void *_address, void *_buffer, std::size_t _size)
-  {
-    struct iovec local_iovec[1];
-    struct iovec remote_iovec[1];
-
-    local_iovec[0].iov_base = _buffer;
-    local_iovec[0].iov_len = sizeof(_size);
-    remote_iovec[0].iov_base = _address;
-    remote_iovec[0].iov_len = sizeof(_size);
-
-    return (process_vm_readv(m_iProcessID, local_iovec, 1, remote_iovec, 1, 0) == static_cast<ssize_t>(_size));
-  }
-  //-------------------------------------------------------------------//
-  char MANAGER::ReadCharProcessMemory(void *_address)
-  {
-    struct iovec local_iovec[1];
-    struct iovec remote_iovec[1];
-
-    char cBuffer;
-
-    local_iovec[0].iov_base = &cBuffer;
-    local_iovec[0].iov_len = sizeof(char);
-    remote_iovec[0].iov_base = _address;
-    remote_iovec[0].iov_len = sizeof(char);
-
-    process_vm_readv(m_iProcessID, local_iovec, 1, remote_iovec, 1, 0) == static_cast<ssize_t>(cBuffer);
-
-    return cBuffer;
-  }
-
-  //-------------------------------------------------------------------//
-  bool MANAGER::WriteProcessMemory(void *_address, void *_buffer, std::size_t _size)
-  {
-    struct iovec local_iovec[1];
-    struct iovec remote_iovec[1];
-
-    local_iovec[0].iov_base = _buffer;
-    local_iovec[0].iov_len = sizeof(_size);
-    remote_iovec[0].iov_base = _address;
-    remote_iovec[0].iov_len = sizeof(_size);
-
-    return (process_vm_writev(m_iProcessID, local_iovec, 1, remote_iovec, 1, 0) == static_cast<ssize_t>(_size));
-  }
-  //-------------------------------------------------------------------//
-  std::uintptr_t MANAGER::GetCallAddressOffset(std::uintptr_t _address)
-  {
-    std::size_t ulCode = 0;
-
-    if (MANAGER::ReadProcessMemory(reinterpret_cast<char *>(_address + 0x1), &ulCode, sizeof(std::size_t)))
-    {
-      return ulCode + (_address + 0x5);
-    }
-
-    return 0;
-  }
-  //-------------------------------------------------------------------//
-  std::uintptr_t MANAGER::GetAbsoluteAddress(std::uintptr_t _address, std::size_t _offset, std::int32_t _size)
-  {
-    std::size_t ulCode = 0;
-
-    if (MANAGER::ReadProcessMemory(reinterpret_cast<char *>(_address + _offset), &ulCode, sizeof(std::size_t)))
-    {
-      return ulCode + (_address + _size);
-    }
-
-    return 0;
-  }
-} // namespace FMEMORY
+// node
+#include <napi.h>
 
 Napi::Number getProcessID(const Napi::CallbackInfo &_info)
 {
-  // environment
   Napi::Env env = _info.Env();
 
   // check if the argument is valid
   if (_info.Length() < 1 || !_info[0].IsString())
   {
-    Napi::TypeError::New(env, "Process name expected - (String)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "process name expected - (arg type: string)").ThrowAsJavaScriptException();
   }
 
-  // process name
+  // get the content of the first argument (process name)
   Napi::String processName = _info[0].As<Napi::String>();
 
   // get pid of given process
-  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetProcessID(processName.Utf8Value()));
+  Napi::Number returnValue = Napi::Number::New(env, gmem::process::get_pid(processName.Utf8Value()));
 
   return returnValue;
 }
 //-------------------------------------------------------------------//
-Napi::Number getModuleBaseAddress(const Napi::CallbackInfo &_info)
+Napi::Number getModuleBaseAddr(const Napi::CallbackInfo &_info)
 {
-  // environment
   Napi::Env env = _info.Env();
 
-  // check if the argument is valid
+  // check if passed arguments are valid
   if (_info.Length() < 1 || !_info[0].IsString())
   {
-    Napi::TypeError::New(env, "Module name expected - (String)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "module name expected - (arg type: string)").ThrowAsJavaScriptException();
   }
   else if (_info.Length() < 1 || !_info[1].IsNumber())
   {
-    Napi::TypeError::New(env, "Process id expected - (Number)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "process id expected - (arg type: number)").ThrowAsJavaScriptException();
   }
 
-  // module name
+  // get the content of the first argument (module name)
   Napi::String moduleName = _info[0].As<Napi::String>();
 
-  // process id
-  Napi::Number pID = _info[1].As<Napi::Number>();
+  // get the content of the second argument (process id)
+  Napi::Number processID = _info[1].As<Napi::Number>();
 
-  // get module address
-  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetModule(moduleName.Utf8Value(), pID.Int32Value()));
+  // get base address of given module
+  Napi::Number returnValue = Napi::Number::New(env, gmem::process::get_base_addr(moduleName.Utf8Value(), processID.Int32Value()));
 
   return returnValue;
 }
 //-------------------------------------------------------------------//
 Napi::Value readMemory(const Napi::CallbackInfo &_info)
 {
-  // environment
   Napi::Env env = _info.Env();
 
   // check if the argument is valid
   if (_info.Length() < 1 || !_info[0].IsNumber())
   {
-    Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "address expected - (arg type: number)").ThrowAsJavaScriptException();
   }
   else if (_info.Length() < 1 || !_info[1].IsString())
   {
-    Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "data type expected - (arg type: string)").ThrowAsJavaScriptException();
   }
 
-  // get base address
-  Napi::Number baseAddress = _info[0].As<Napi::Number>();
+  // get the content of the first argument (address location to read)
+  Napi::Number address = _info[0].As<Napi::Number>();
 
-  // get data type
+  // get the content of the second argument (data type)
   Napi::String dataType = _info[1].As<Napi::String>();
 
-  // dummy
   Napi::Value returnValue = {};
 
   if (dataType.Utf8Value().compare("int32") == 0)
   {
-    std::int32_t dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<std::int32_t>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("int64") == 0)
   {
-    std::int64_t dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<std::int64_t>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("uint32") == 0)
   {
-    std::uint32_t dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<std::uint32_t>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
-    else if (dataType.Utf8Value().compare("uint64") == 0)
+  else if (dataType.Utf8Value().compare("uint64") == 0)
   {
-    std::uint64_t dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<std::uint64_t>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("long") == 0)
   {
-    long dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<long>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("ulong") == 0)
   {
-    unsigned long dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<unsigned long>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("short") == 0)
   {
-    short dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<short>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("ushort") == 0)
   {
-    unsigned short dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<unsigned short>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("float") == 0)
   {
-    float dummy = 0.0f;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<float>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("double") == 0)
   {
-    double dummy = 0.0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<double>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("byte") == 0)
   {
-    std::uint8_t dummy = 0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<unsigned char>(address.Int64Value());
+    return Napi::Number::New(env, result);
+  }
+
+  else if (dataType.Utf8Value().compare("char") == 0)
+  {
+    auto result = gmem::process::read_mem<char>(address.Int64Value());
+    return Napi::Number::New(env, result);
+  }
+
+  else if (dataType.Utf8Value().compare("uchar") == 0)
+  {
+    auto result = gmem::process::read_mem<unsigned char>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("bool") == 0)
   {
-    bool dummy = false;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Boolean::New(env, dummy);
+    auto result = gmem::process::read_mem<bool>(address.Int64Value());
+    return Napi::Boolean::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("pointer") == 0)
   {
-    std::uintptr_t dummy = 0x0;
-    mngrMemory.ReadProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
-    return Napi::Number::New(env, dummy);
+    auto result = gmem::process::read_mem<std::uintptr_t>(address.Int64Value());
+    return Napi::Number::New(env, result);
   }
 
   else if (dataType.Utf8Value().compare("string") == 0)
@@ -320,9 +177,9 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
 
     // char offset (count)
     std::size_t offset = 0x0;
-    while (true)
+    for (;;)
     {
-      char buffer = mngrMemory.ReadCharProcessMemory((reinterpret_cast<char *>(baseAddress.Int64Value()) + offset));
+      auto buffer = gmem::process::read_mem<char>(address.Int64Value() + offset);
       characters.push_back(buffer);
 
       // break at 1 million chars
@@ -345,13 +202,13 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
     if (characters.size())
     {
       // assemble a new string with found characters
-      std::string assembled_string_with_found_chars(characters.begin(), characters.end());
+      std::string assembled_string(characters.begin(), characters.end());
 
-      return Napi::String::New(env, assembled_string_with_found_chars.c_str());
+      return Napi::String::New(env, assembled_string.c_str());
     }
     else // if the string is invalid
     {
-      Napi::TypeError::New(env, "Invalid string!").ThrowAsJavaScriptException(); // TODO: add a more verbose error
+      Napi::TypeError::New(env, "invalid string!").ThrowAsJavaScriptException(); // TODO: add a more verbose error
     }
   }
 
@@ -360,25 +217,24 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
 //-------------------------------------------------------------------//
 Napi::Function writeMemory(const Napi::CallbackInfo &_info)
 {
-  // environment
   Napi::Env env = _info.Env();
 
   // check if the argument is valid
   if (_info.Length() < 1 || !_info[0].IsNumber())
   {
-    Napi::TypeError::New(env, "Base module address expected - (Number)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "address expected - (arg type: number)").ThrowAsJavaScriptException();
   }
   else if (_info.Length() < 1 || !_info[1].IsNumber())
   {
-    Napi::TypeError::New(env, "Value expected - (Number) or (String)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "value to write expected - (arg type: any)").ThrowAsJavaScriptException();
   }
   else if (_info.Length() < 1 || !_info[2].IsString())
   {
-    Napi::TypeError::New(env, "Data type expected - (String)").ThrowAsJavaScriptException();
+    Napi::TypeError::New(env, "data type expected - (arg type: string)").ThrowAsJavaScriptException();
   }
 
   // get base address
-  Napi::Number baseAddress = _info[0].As<Napi::Number>();
+  Napi::Number address = _info[0].As<Napi::Number>();
 
   // get value
   Napi::Number valueToWrite = _info[1].As<Napi::Number>();
@@ -389,143 +245,98 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
   // get data type
   Napi::String dataType = _info[2].As<Napi::String>();
 
-  // dummy return value
   Napi::Function returnValue = {};
 
   if (dataType.Utf8Value().compare("int32") == 0)
   {
     std::int32_t dummy = valueToWrite.Int32Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<std::int32_t>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("int64") == 0)
   {
     std::int64_t dummy = valueToWrite.Int64Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<std::int64_t>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("uint32") == 0)
   {
     std::uint32_t dummy = valueToWrite.Uint32Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<std::uint32_t>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("uint64") == 0)
   {
     std::uint64_t dummy = valueToWrite.Int64Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<std::uint64_t>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("long") == 0)
   {
     long dummy = valueToWrite.Int64Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<long>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("ulong") == 0)
   {
     unsigned long dummy = valueToWrite.Int64Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<unsigned long>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("short") == 0)
   {
     short dummy = valueToWrite.Int32Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<short>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("ushort") == 0)
   {
     unsigned short dummy = valueToWrite.Uint32Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<unsigned short>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("float") == 0)
   {
     float dummy = valueToWrite.FloatValue();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<float>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("double") == 0)
   {
     double dummy = valueToWrite.DoubleValue();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<double>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("byte") == 0)
   {
     unsigned char dummy = valueToWrite.Uint32Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<unsigned char>(address.Int64Value(), dummy);
+  }
+
+  else if (dataType.Utf8Value().compare("char") == 0)
+  {
+    char dummy = valueToWrite.Uint32Value();
+    gmem::process::write_mem<char>(address.Int64Value(), dummy);
+  }
+
+    else if (dataType.Utf8Value().compare("uchar") == 0)
+  {
+    unsigned char dummy = valueToWrite.Uint32Value();
+    gmem::process::write_mem<unsigned char>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("bool") == 0)
   {
     bool dummy = booleanToWrite.Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), &dummy, sizeof(dummy));
+    gmem::process::write_mem<bool>(address.Int64Value(), dummy);
   }
 
   else if (dataType.Utf8Value().compare("string") == 0)
   {
-    Napi::String valueToWrite = _info[1].As<Napi::String>();
-
-    std::string dummy = valueToWrite.Utf8Value();
-    mngrMemory.WriteProcessMemory(reinterpret_cast<void *>(baseAddress.Int64Value()), reinterpret_cast<char *>(dummy.data()), sizeof(dummy));
+    Napi::String stringToWrite = _info[1].As<Napi::String>();
+    std::string dummy = stringToWrite.Utf8Value();
+    gmem::process::write_mem<const char*>(address.Int64Value(), dummy.c_str());
   }
-
-  return returnValue;
-}
-//-------------------------------------------------------------------//
-Napi::Number getCallAddressOffset(const Napi::CallbackInfo &_info)
-{
-  // environment
-  Napi::Env env = _info.Env();
-
-  // check if the argument is valid
-  if (_info.Length() < 1 || !_info[0].IsNumber())
-  {
-    Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
-  }
-
-  // address to call
-  Napi::Number addressToCall = _info[0].As<Napi::Number>();
-
-  // get call address offset
-  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetCallAddressOffset(addressToCall.Int64Value()));
-
-  return returnValue;
-}
-//-------------------------------------------------------------------//
-Napi::Number getAbsoluteAddress(const Napi::CallbackInfo &_info)
-{
-  // environment
-  Napi::Env env = _info.Env();
-
-  // check if the argument is valid
-  if (_info.Length() < 1 || !_info[0].IsNumber())
-  {
-    Napi::TypeError::New(env, "Address expected - (Number)").ThrowAsJavaScriptException();
-  }
-  else if (_info.Length() < 1 || !_info[1].IsNumber())
-  {
-    Napi::TypeError::New(env, "Offset expected - (Number)").ThrowAsJavaScriptException();
-  }
-
-  else if (_info.Length() < 1 || !_info[2].IsNumber())
-  {
-    Napi::TypeError::New(env, "Size expected - (Number)").ThrowAsJavaScriptException();
-  }
-
-  // address to call
-  Napi::Number addressToCall = _info[0].As<Napi::Number>();
-
-  // address offset
-  Napi::Number addressOffset = _info[1].As<Napi::Number>();
-
-  // address size
-  Napi::Number addressSize = _info[2].As<Napi::Number>();
-
-  // get call address
-  Napi::Number returnValue = Napi::Number::New(env, mngrMemory.GetAbsoluteAddress(addressToCall.Int64Value(), addressOffset.Int32Value(), addressSize.Int32Value()));
 
   return returnValue;
 }
@@ -533,13 +344,11 @@ Napi::Number getAbsoluteAddress(const Napi::CallbackInfo &_info)
 Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
 {
   _exports.Set("getProcessID", Napi::Function::New(_env, getProcessID));
-  _exports.Set("getModuleBaseAddress", Napi::Function::New(_env, getModuleBaseAddress));
+  _exports.Set("getModuleBaseAddr", Napi::Function::New(_env, getModuleBaseAddr));
   _exports.Set("readMemory", Napi::Function::New(_env, readMemory));
   _exports.Set("writeMemory", Napi::Function::New(_env, writeMemory));
-  _exports.Set("getCallAddressOffset", Napi::Function::New(_env, getCallAddressOffset));
-  _exports.Set("getAbsoluteAddress", Napi::Function::New(_env, getAbsoluteAddress));
 
   return _exports;
 }
 
-NODE_API_MODULE(fmemoryJS, Initialize);
+NODE_API_MODULE(fmemory, Initialize);
