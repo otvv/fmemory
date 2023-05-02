@@ -69,8 +69,9 @@ _(fmemory still needs improvements on this area, but it works.)_
 
 <h4>documentation:</h4>
 
-When using the `writeMem` or `readMem` you will need to tell the data type parameter, it can either be a `string`:
+When using `writeMemory` or `readMemory` functions, you will need to tell the data type parameter. 
 
+It can either be a `string`:
 ```javascript
 "int32", "uint32", "int64",
 "uint64", "long", "ulong", 
@@ -79,8 +80,7 @@ When using the `writeMem` or `readMem` you will need to tell the data type param
 "bool" "string", "pointer"
 ```
 
-Or you can use one of the constants provided by the library:
-
+Or you can use one of the `constants` provided by the library:
 ```javascript
 fmemory.INT, fmemory.UINT, fmemory.INT64,
 fmemory.UINT64, fmemory.LONG, fmemory.ULONG, 
