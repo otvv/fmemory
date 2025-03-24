@@ -21,10 +21,12 @@
 
 // linux
 #include <sys/uio.h>
+#include <sys/types.h>
 #include <inttypes.h>
 
 namespace gmem
 {
+  // TODO: maybe move this to internal namespace
   namespace proc_info
   {
     inline std::int32_t process_id;
@@ -41,37 +43,38 @@ namespace gmem
 
   namespace proc
   {
-    std::int32_t get_process_id(const std::string &process_name)
+    std::int32_t get_pid(const std::string &process_name)
     {
-      // in case the user provides an invalid process name, dont proceed
+      // in case the user provides an invalid process name, return an invalid id as well
       if (process_name.empty())
       {
         return -1;
       }
 
-      // iterate the process list and look for the process name supplied by the user
+      // iterate the process list to look for the process supplied by the user
       for (const auto &process : std::filesystem::directory_iterator("/proc/"))
       {
+        // don't do anything in case the process list is invalid
         if (!process.is_directory() || !internal::composed_of_digits(process.path().string().erase(0, 6)))
         {
           continue;
         }
 
-        // variable used to store the name of each process found in the 'proc' directory
+        // this will store the name of each process found in the 'proc' directory
         std::string name_process_found;
 
-        // open the file that contains the process list
+        // open the file that contains a list of process names
         std::ifstream process_name_list(process.path() / "comm");
 
         if (process_name_list.is_open())
         {
+          // read file line by line
           std::getline(process_name_list, name_process_found);
 
+          // if the process found on the list is the same as the one the user supplied
           if (name_process_found == process_name)
-          { 
-            // store the found process id
+          {
             proc_info::process_id = std::stoi(process.path().string().erase(0, 6));
-
             return proc_info::process_id;
           }
         }
@@ -80,35 +83,32 @@ namespace gmem
       return -1;
     }
 
-    std::uintptr_t get_base_addr(const std::string &module_name, std::int32_t pid)
+    //
+    //
+
+    std::uintptr_t get_base_addr(const std::string &module_name, const std::int32_t pid)
     {
-      FILE* file_maps;
+      FILE* file_maps = nullptr;
       char cmd[MAX_BUFFER_SIZE];
 
-      // create the command to find the module base address
-      std::snprintf(cmd, MAX_BUFFER_SIZE, "grep \"%s\" /proc/%i/maps | head -n 1 | cut -d \"-\" -f1", module_name.c_str(), pid);
+      if (snprintf(cmd, sizeof(cmd), "grep \"%s\" /proc/%i/maps | head -n 1 | cut -d \"-\" -f1", 
+          module_name.c_str(), pid) >= sizeof(cmd)) {
+          return 0; // buffer would overflow
+      }
 
-      // create stream with the command that was just generated
       file_maps = popen(cmd, "r");
-
-      // close stream in case something goes wrong with the command
-      if (!file_maps)
-      {
-        pclose(file_maps);
-
-        return 0x0;
+      if (!file_maps) {
+          return 0;
       }
 
-      // if module has been found, store its base address in a variable
-      if (fscanf(file_maps, "%" SCNx64, &proc_info::base_address))
-      {
-        pclose(file_maps);
+      bool success = (fscanf(file_maps, "%" SCNx64, &proc_info::base_address) == 1);
+      pclose(file_maps);
 
-        return proc_info::base_address;
-      }
-
-      return 0x0;
+      return success ? proc_info::base_address : 0;
     }
+
+    //
+    //
 
     template <typename T>
     T read_mem(std::uintptr_t address)
@@ -128,19 +128,21 @@ namespace gmem
       return buffer;
     }
 
+    //
+    //
+
     template <typename T>
-    void write_mem(std::uintptr_t address, T value)
+    bool write_mem(const std::uintptr_t address, const T& value)
     {
       struct iovec local[1];
       struct iovec remote[1];
 
-      local[0].iov_base = std::addressof(value);
-      local[0].iov_len = sizeof(value);
+      local[0].iov_base = const_cast<T*>(&value);
+      local[0].iov_len = sizeof(T);
+      remote[0].iov_base = reinterpret_cast<void*>(address);
+      remote[0].iov_len = sizeof(T);
 
-      remote[0].iov_base = reinterpret_cast<void *>(address);
-      remote[0].iov_len = sizeof(value);
-
-      process_vm_writev(proc_info::process_id, local, 1, remote, 1, 0);
+      return process_vm_writev(proc_info::process_id, local, 1, remote, 1, 0) == sizeof(T);
     }
 
   } // namespace gmem::proc

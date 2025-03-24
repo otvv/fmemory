@@ -26,10 +26,14 @@ Napi::Number getProcessID(const Napi::CallbackInfo &_info)
   // get the content of the first argument (process name)
   Napi::String processName = _info[0].As<Napi::String>();
 
-  // get pid of given process
-  Napi::Number returnValue = Napi::Number::New(env, gmem::proc::get_process_id(processName.Utf8Value()));
-
-  return returnValue;
+  // Check if process exists before returning
+  auto pid = gmem::proc::get_pid(processName.Utf8Value());
+  if (pid <= 0) {
+    Napi::Error::New(env, "process not found").ThrowAsJavaScriptException();
+    return Napi::Number::New(env, 0);
+  }
+  
+  return Napi::Number::New(env, pid);
 }
 //-------------------------------------------------------------------//
 Napi::Number getModuleBaseAddr(const Napi::CallbackInfo &_info)
@@ -172,50 +176,35 @@ Napi::Value readMemory(const Napi::CallbackInfo &_info)
 
   else if (dataType.Utf8Value().compare("string") == 0)
   {
-    // store characters here
-    std::vector<char> characters = {};
-
-    // char offset (count)
-    std::size_t offset = 0x0;
-    for (;;)
-    {
-      auto buffer = gmem::proc::read_mem<char>(address.Int64Value() + offset);
-      characters.push_back(buffer);
-
-      // break at 1 million chars
-      if (offset == (sizeof(char) * MAX_CHAR_SIZE))
-      {
-        characters.clear();
-        break;
+    try {
+      std::vector<char> characters;
+      characters.reserve(1024); // pre-allocate for better performance
+      
+      std::size_t offset = 0;
+      while (offset < MAX_CHAR_SIZE) {
+        char buffer = gmem::proc::read_mem<char>(address.Int64Value() + offset);
+        if (buffer == '\0') break;
+        
+        characters.push_back(buffer);
+        offset += sizeof(char);
       }
 
-      // break at terminator (end of string)
-      if (buffer == '\0')
-      {
-        break;
+      if (characters.empty()) {
+        return Napi::String::New(env, "");
       }
 
-      // go to next char
-      offset += sizeof(char);
-    }
-
-    if (characters.size())
-    {
-      // assemble a new string with found characters
-      std::string assembled_string(characters.begin(), characters.end());
-
-      return Napi::String::New(env, assembled_string.c_str());
-    }
-    else // if the string is invalid
-    {
-      Napi::TypeError::New(env, "invalid string!").ThrowAsJavaScriptException(); // TODO: add a more verbose error
+      return Napi::String::New(env, std::string(characters.begin(), characters.end()));
+      
+    } catch (const std::exception& e) {
+      Napi::Error::New(env, "failed to read string from memory").ThrowAsJavaScriptException();
+      return env.Null();
     }
   }
 
   return returnValue;
 }
 //-------------------------------------------------------------------//
-Napi::Function writeMemory(const Napi::CallbackInfo &_info)
+Napi::Value writeMemory(const Napi::CallbackInfo &_info)
 {
   Napi::Env env = _info.Env();
 
@@ -245,100 +234,105 @@ Napi::Function writeMemory(const Napi::CallbackInfo &_info)
   // get data type
   Napi::String dataType = _info[2].As<Napi::String>();
 
-  Napi::Function returnValue = {};
+  Napi::Value returnValue = {};
 
-  if (dataType.Utf8Value().compare("int32") == 0)
-  {
-    std::int32_t dummy = valueToWrite.Int32Value();
-    gmem::proc::write_mem<std::int32_t>(address.Int64Value(), dummy);
-  }
+  try {
+    if (dataType.Utf8Value().compare("int32") == 0)
+    {
+      std::int32_t dummy = valueToWrite.Int32Value();
+      gmem::proc::write_mem<std::int32_t>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("int64") == 0)
-  {
-    std::int64_t dummy = valueToWrite.Int64Value();
-    gmem::proc::write_mem<std::int64_t>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("int64") == 0)
+    {
+      std::int64_t dummy = valueToWrite.Int64Value();
+      gmem::proc::write_mem<std::int64_t>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("uint32") == 0)
-  {
-    std::uint32_t dummy = valueToWrite.Uint32Value();
-    gmem::proc::write_mem<std::uint32_t>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("uint32") == 0)
+    {
+      std::uint32_t dummy = valueToWrite.Uint32Value();
+      gmem::proc::write_mem<std::uint32_t>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("uint64") == 0)
-  {
-    std::uint64_t dummy = valueToWrite.Int64Value();
-    gmem::proc::write_mem<std::uint64_t>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("uint64") == 0)
+    {
+      std::uint64_t dummy = valueToWrite.Int64Value();
+      gmem::proc::write_mem<std::uint64_t>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("long") == 0)
-  {
-    long dummy = valueToWrite.Int64Value();
-    gmem::proc::write_mem<long>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("long") == 0)
+    {
+      long dummy = valueToWrite.Int64Value();
+      gmem::proc::write_mem<long>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("ulong") == 0)
-  {
-    unsigned long dummy = valueToWrite.Int64Value();
-    gmem::proc::write_mem<unsigned long>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("ulong") == 0)
+    {
+      unsigned long dummy = valueToWrite.Int64Value();
+      gmem::proc::write_mem<unsigned long>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("short") == 0)
-  {
-    short dummy = valueToWrite.Int32Value();
-    gmem::proc::write_mem<short>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("short") == 0)
+    {
+      short dummy = valueToWrite.Int32Value();
+      gmem::proc::write_mem<short>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("ushort") == 0)
-  {
-    unsigned short dummy = valueToWrite.Uint32Value();
-    gmem::proc::write_mem<unsigned short>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("ushort") == 0)
+    {
+      unsigned short dummy = valueToWrite.Uint32Value();
+      gmem::proc::write_mem<unsigned short>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("float") == 0)
-  {
-    float dummy = valueToWrite.FloatValue();
-    gmem::proc::write_mem<float>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("float") == 0)
+    {
+      float dummy = valueToWrite.FloatValue();
+      gmem::proc::write_mem<float>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("double") == 0)
-  {
-    double dummy = valueToWrite.DoubleValue();
-    gmem::proc::write_mem<double>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("double") == 0)
+    {
+      double dummy = valueToWrite.DoubleValue();
+      gmem::proc::write_mem<double>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("byte") == 0)
-  {
-    unsigned char dummy = valueToWrite.Uint32Value();
-    gmem::proc::write_mem<unsigned char>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("byte") == 0)
+    {
+      unsigned char dummy = valueToWrite.Uint32Value();
+      gmem::proc::write_mem<unsigned char>(address.Int64Value(), dummy);
+    }
 
-  else if (dataType.Utf8Value().compare("char") == 0)
-  {
-    char dummy = valueToWrite.Uint32Value();
-    gmem::proc::write_mem<char>(address.Int64Value(), dummy);
-  }
+    else if (dataType.Utf8Value().compare("char") == 0)
+    {
+      char dummy = valueToWrite.Uint32Value();
+      gmem::proc::write_mem<char>(address.Int64Value(), dummy);
+    }
 
     else if (dataType.Utf8Value().compare("uchar") == 0)
-  {
-    unsigned char dummy = valueToWrite.Uint32Value();
-    gmem::proc::write_mem<unsigned char>(address.Int64Value(), dummy);
+    {
+      unsigned char dummy = valueToWrite.Uint32Value();
+      gmem::proc::write_mem<unsigned char>(address.Int64Value(), dummy);
+    }
+
+    else if (dataType.Utf8Value().compare("bool") == 0)
+    {
+      bool dummy = booleanToWrite.Value();
+      gmem::proc::write_mem<bool>(address.Int64Value(), dummy);
+    }
+
+    else if (dataType.Utf8Value().compare("string") == 0)
+    {
+      Napi::String stringToWrite = _info[1].As<Napi::String>();
+      std::string dummy = stringToWrite.Utf8Value();
+      gmem::proc::write_mem<const char*>(address.Int64Value(), dummy.c_str());
+    }
+  } catch (const std::exception& e) {
+    Napi::Error::New(env, "failed to write to memory").ThrowAsJavaScriptException();
+    return env.Null();
   }
 
-  else if (dataType.Utf8Value().compare("bool") == 0)
-  {
-    bool dummy = booleanToWrite.Value();
-    gmem::proc::write_mem<bool>(address.Int64Value(), dummy);
-  }
-
-  else if (dataType.Utf8Value().compare("string") == 0)
-  {
-    Napi::String stringToWrite = _info[1].As<Napi::String>();
-    std::string dummy = stringToWrite.Utf8Value();
-    gmem::proc::write_mem<const char*>(address.Int64Value(), dummy.c_str());
-  }
-
-  return returnValue;
+  return env.Undefined();
 }
 //-------------------------------------------------------------------//
 Napi::Object Initialize(Napi::Env _env, Napi::Object _exports)
