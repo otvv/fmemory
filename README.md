@@ -40,26 +40,28 @@ Here's how:
 
 ```javascript
 const fmemory = require("fmemory");
+// or import fmemory from "fmemory";
 
-const clientStateAddress = 0xDEADBEEF
-const deltaTickOffset = 0x123
+const localPlayerControllerAddress = 0xDEADBEEF;
+const hPawn = 0x123;
+const flFlashAlpha = 0x321;
 
 const main = (() => {
   // get process id
-  const processID = fmemory.getProcessID("csgo_linux64")
+  const processID = fmemory.getProcessID("cs2")
 
   // get engine module base address
-  const engineModuleBaseAddress = fmemory.getModuleBaseAddr("engine_client.so", processID)
+  const clientModuleBaseAddress = fmemory.getModuleBaseAddr("libclient.so", processID)
   
   // another way to get the module base address
-  // const engineModuleBaseAddress = fmemory.getModuleBaseAddr("engine_client.so", "csgo_linux64") 
+  // const clientModuleBaseAddress = fmemory.getModuleBaseAddrProName("libclient.so", "cs2") 
 
-  // get client state address
-  const pClientState = fmemory.readMemory(engineModuleBaseAddress + clientStateAddress, fmemory.INT)
+  // local player pawn pointer
+  const pLocalPLayer = fmemory.readMemory(localPlayerControllerAddress + hPawn, fmemory.POINTER)
 
-  if (pClientState) {
-    // force update
-    fmemory.writeMemory(pClientState + deltaTickOffset, -1 /* <- value */, fmemory.BYTE)
+  // disable flashbang
+  if (pLocalPLayer) {
+    fmemory.writeMemory(pLocalPLayer + flFlashAlpha, 0.0 /* <- value */, fmemory.FLOAT)
   }
 })()
 ```
