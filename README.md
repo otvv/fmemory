@@ -54,7 +54,7 @@ const main = (() => {
   const clientModuleBaseAddress = fmemory.getModuleBaseAddr("libclient.so", processID)
   
   // another way to get the module base address
-  // const clientModuleBaseAddress = fmemory.getModuleBaseAddrProName("libclient.so", "cs2") 
+  // const clientModuleBaseAddress = fmemory.getModuleBaseAddrProcName("libclient.so", "cs2") 
 
   // local player pawn pointer
   const pLocalPLayer = fmemory.readMemory(localPlayerControllerAddress + hPawn, fmemory.POINTER)
